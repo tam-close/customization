@@ -10,17 +10,18 @@ module.exports = async function handler(req, res) {
     const { prompt } = req.body;
 
     if (!prompt) return res.status(400).json({ error: 'No prompt provided' });
-    if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'API key not configured' });
+    if (!process.env.OPENROUTER_API_KEY) return res.status(500).json({ error: 'API key not configured' });
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://customization-rho.vercel.app',
+        'X-Title': 'Close CRM Setup Recommendations'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: 'anthropic/claude-sonnet-4-5',
         max_tokens: 4000,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -30,7 +31,7 @@ module.exports = async function handler(req, res) {
 
     if (data.error) return res.status(500).json({ error: data.error.message });
 
-    const text = data.content?.map(b => b.text || '').join('') || '';
+    const text = data.choices?.[0]?.message?.content || '';
     res.status(200).json({ result: text });
   } catch (e) {
     res.status(500).json({ error: e.message || 'Something went wrong' });
